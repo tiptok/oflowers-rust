@@ -1,0 +1,36 @@
+[package]
+name = "oflowers-rust"
+version = "0.1.0"
+authors = ["Tiptok <785409885@qq.com>"]
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+actix-web = "4.3.1"
+actix-rt = "2.8.0"
+actix-service = "2.0.2"
+actix-cors = "0.6.4"
+actix-http = "3.4.0"
+actix-files = "0.6.2"
+derive_more = "0.99.17"
+log = "0.4.18"
+env_logger = "0.10.0"
+serde = "1.0.163"
+serde_derive = "1.0.163"
+serde_json = "1.0.96"
+toml = "0.8.8"
+lazy_static = "1.4"
+futures = "0.3.28"
+jsonwebtoken = "9.2.0"
+
+[dependencies.diesel]
+version = "2.1.0"
+features = ["postgres", "r2d2", "chrono"]
+
+[source.crates-io]
+registry = "https://github.com/rust-lang/crates.io-index"
+
+replace-with = 'tuna'
+[source.tuna]
+registry = "https://mirrors.tuna.tsinghua.edu.cn/git/crates.io-index.git"

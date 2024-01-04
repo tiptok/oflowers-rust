@@ -1,0 +1,11 @@
+listen_address = "127.0.0.1"
+listen_port = "8088"
+jwt_secret = "secret"
+jwt_expire = 36000
+
+[database]
+url = "postgres://postgres:123456@127.0.0.1:5432/dbpp"
+
+[redis]
+host = "127.0.0.1"
+port = "6379"
