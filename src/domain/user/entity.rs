@@ -9,6 +9,7 @@ use diesel::internal::derives::multiconnection::chrono;
 use diesel::query_dsl::methods::OrderDsl;
 use diesel::sql_types::BigInt;
 use futures::future::ok;
+use crate::pkg::pagination::{Paginate, Paginated};
 
 #[derive(Identifiable, Queryable, Selectable, Deserialize, Serialize,AsChangeset,Insertable,Default)]
 #[diesel(table_name = crate::schema::users)]
@@ -18,6 +19,8 @@ pub struct User {
     pub name: String,
     pub avatar: String,
     pub phone: String,
+    pub created_at: i64,
+    pub updated_at: i64,
     pub deleted_at: Option<i64>,
 }
 #[derive( Deserialize, Serialize,AsChangeset,Insertable)]
@@ -26,6 +29,8 @@ pub struct UserDTO {
     pub name: String,
     pub avatar: String,
     pub phone: String,
+    pub created_at: i64,
+    pub updated_at: i64,
 }
 
 
@@ -42,6 +47,7 @@ where
     fn find_one(&self, conn: &mut Conn, id: i64) -> QueryResult<User>;
     fn find_one_unscoped(&self, conn: &mut Conn, id: i64) -> QueryResult<User>;
     fn find(&self, conn: &mut Conn,queryOptions: UserQueryOptions)->QueryResult<Vec<User>>;
+    fn find_paginate(&self, conn: &mut Conn,queryOptions: UserQueryOptions)->QueryResult<(Vec<User>,i64)>;
 }
 
 #[derive(Clone, Copy)]
@@ -91,10 +97,10 @@ impl UserRepository for PgUserRepository {
         let mut query = users.into_boxed();
         query = query.filter(deleted_at.is_null());
         if let Some(username)=queryOptions.name{
-            query = query.filter(name.like(format!("%{:?}%", username)));
+            query = query.filter(name.like(format!("%{}%", username)));
         }
         if let Some(userphone)=queryOptions.phone{
-            query = query.filter(phone.like(format!("%{:?}%", userphone)));
+            query = query.filter(phone.like(format!("%{}%", userphone)));
         }
         if let Some(page) = queryOptions.page{
             if let Some(size) = queryOptions.size{
@@ -104,6 +110,21 @@ impl UserRepository for PgUserRepository {
         }
         query = OrderDsl::order(query, id.asc());
         query.load::<User>(conn)
+    }
+    fn find_paginate(&self, conn: &mut Conn,queryOptions: UserQueryOptions)->QueryResult<(Vec<User>,i64)>{
+        let mut query = users.into_boxed();
+        query = query.filter(deleted_at.is_null());
+        if let Some(username)=queryOptions.name{
+            query = query.filter(name.like(format!("%{}%", username)));
+        }
+        if let Some(userphone)=queryOptions.phone{
+            query = query.filter(phone.like(format!("%{}%", userphone)));
+        }
+        query
+            .paginate(queryOptions.page)
+            .page_size(queryOptions.size)
+            .sort(queryOptions.sort_by,queryOptions.sort_direction)
+            .load_and_count_pages::<User>(conn)
     }
 }
 #[derive(Default)]

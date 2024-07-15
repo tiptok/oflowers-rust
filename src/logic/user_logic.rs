@@ -2,6 +2,7 @@ use crate::domain::user::entity::{User, UserQueryOptions, UserRepository};
 use crate::pkg::{
     error::{self, InternalError},
     jwt,
+    tool,
 };
 use crate::{
     domain::user::dto::{LoginRequest, LoginResponse, UserInfoRequest, UserInfoResponse},
@@ -102,6 +103,7 @@ pub fn update(req: UserUpdateRequest,svc: &web::Data<ServiceContext>)->Result<Us
     user.avatar = req.user.avatar;
     user.name = req.user.name;
     user.phone = req.user.phone;
+    user.updated_at = tool::time_now_unix();
     let user = svc.user_repository.update(&mut svc.pool.get().unwrap(),user)?;//new_domain_user(req.user)
     Ok(UserUpdateResponse{
         user:new_dto_user(user)
@@ -120,8 +122,6 @@ pub fn search(req: UserSearchRequest,svc: &web::Data<ServiceContext>)->Result<Us
     {
         page: Some(req.page),
         size:Some(req.size),
-        // name:Some(req.name),
-        // phone:Some(req.phone),
         ..Default::default()
     };
     if req.name.len()>0{
@@ -130,11 +130,11 @@ pub fn search(req: UserSearchRequest,svc: &web::Data<ServiceContext>)->Result<Us
     if req.phone.len()>0{
         queryOptions.phone = Some(req.phone);
     }
-    let users = svc.user_repository.find(&mut svc.pool.get().unwrap(),queryOptions)?;
-    let dto_users = new_dto_users(users);
+    let result = svc.user_repository.find_paginate(&mut svc.pool.get().unwrap(),queryOptions)?;
+    let dto_users = new_dto_users(result.0);
     Ok(UserSearchResponse {
         list: dto_users,
-        total: 0, // 或者根据实际情况设置 total
+        total: result.1, // 或者根据实际情况设置 total
     })
 }
 
@@ -155,6 +155,8 @@ fn new_domain_user(user: dto::User)-> entity::User{
         name:user.name,
         phone:user.phone,
         avatar:user.avatar,
+        created_at: tool::time_now_unix(),
+        updated_at: tool::time_now_unix(),
         ..Default::default()
     }
 }
@@ -164,14 +166,19 @@ fn new_domain_user_dto(user: dto::User)-> entity::UserDTO{
         name:user.name,
         phone:user.phone,
         avatar:user.avatar,
+        created_at: tool::time_now_unix(),
+        updated_at: tool::time_now_unix(),
     }
 }
 
 fn new_dto_users(users: Vec<entity::User>)-> Vec<dto::User>{
+    // 方法一： 遍历
     // let mut target_vec: Vec<dto::User> = Vec::new();
     // for item in users {
     //     target_vec.push(new_dto_user(item));
     // }
     // target_vec
+
+    // 方法二：遍历
     users.into_iter().map(|user|new_dto_user(user)).collect()
 }

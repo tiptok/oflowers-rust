@@ -7,6 +7,8 @@ table! {
         name -> Text,
         avatar -> Text,
         phone -> Text,
+        created_at->BigInt,
+        updated_at->BigInt,
         deleted_at -> Nullable<BigInt>,
     }
 }
