@@ -3,18 +3,17 @@ use diesel::{allow_tables_to_appear_in_same_query, table};
 
 table! {
     users(id) {
-        id -> Int8,
-        client_type -> Text,
+        id -> BigSerial,
         name -> Text,
         avatar -> Text,
         phone -> Text,
+        deleted_at -> Nullable<BigInt>,
     }
 }
 
 table! {
     post(id) {
         id -> Int8,
-        client_type -> Text,
         name -> Text,
         avatar -> Text,
         phone -> Text,

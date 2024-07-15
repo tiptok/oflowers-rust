@@ -1,6 +1,7 @@
 use std::default;
 
 use actix_web::{error, http::StatusCode, HttpRequest, HttpResponse, Responder};
+use actix_web::http::header::ContentType;
 //use futures::future::{ready, Ready};
 use serde::Serialize;
 #[derive(Serialize)]
@@ -24,7 +25,7 @@ where
 }
 
 use derive_more::{Display, Error};
-
+use serde_derive::Deserialize;
 use super::error::InternalError;
 
 #[derive(Debug, Display, Error)]
@@ -51,6 +52,11 @@ impl error::ResponseError for ServiceError {
             ServiceError::NotFound { .. } => StatusCode::NOT_FOUND,
         }
     }
+    fn error_response(&self) -> HttpResponse {
+        HttpResponse::build(self.status_code())
+            .insert_header(ContentType::json())
+            .json(ResponseBody::new(&self.to_string(), String::from("")))
+    }
 }
 
 pub fn success<T>(data: T) -> HttpResponseWrapper<T> {
@@ -58,6 +64,21 @@ pub fn success<T>(data: T) -> HttpResponseWrapper<T> {
         code: 0,
         msg: "OK".to_string(),
         data: Some(data),
+    }
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct ResponseBody<T> {
+    pub msg: String,
+    pub data: T,
+}
+
+impl<T> ResponseBody<T> {
+    pub fn new(message: &str, data: T) -> ResponseBody<T> {
+        ResponseBody {
+            msg: message.to_string(),
+            data,
+        }
     }
 }
 

@@ -104,6 +104,10 @@ where
         };
 
         let res = self.service.call(req);
-        Box::pin(async move { res.await.map(ServiceResponse::map_into_left_body) })
+        // Box::pin(async move { res.await.map(ServiceResponse::map_into_left_body) })
+        Box::pin(async move {
+            let res = res.await?;
+            Ok(res.map_into_left_body())
+        })
     }
 }

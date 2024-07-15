@@ -1,4 +1,4 @@
-use crate::domain::user::entity::UserRepository;
+use crate::domain::user::entity::{User, UserQueryOptions, UserRepository};
 use crate::pkg::{
     error::{self, InternalError},
     jwt,
@@ -8,6 +8,11 @@ use crate::{
     svc::context::ServiceContext,
 };
 use actix_web::web;
+use diesel::{Connection, QueryResult};
+use diesel::serialize::IsNull::No;
+use crate::domain::user::dto::{UserDeleteRequest, UserDeleteResponse, UserGetRequest, UserGetResponse, UserSaveRequest, UserSaveResponse, UserSearchRequest, UserSearchResponse, UserUpdateRequest, UserUpdateResponse};
+use crate::domain::user::dto;
+use crate::domain::user::entity;
 
 pub fn login(
     req: LoginRequest,
@@ -36,7 +41,7 @@ pub fn get_user_info(
 ) -> Result<UserInfoResponse, InternalError> {
     match &svc
         .user_repository
-        .find_one(&mut svc.pool.get().unwrap(), &req.id)
+        .find_one(&mut svc.pool.get().unwrap(), req.id)
     {
         Ok(u) => {
             let mut user_token = crate::pkg::jwt::UserToken::default();
@@ -45,10 +50,128 @@ pub fn get_user_info(
                 id: u.id.clone(),
                 name: u.name.clone(),
                 avatar: u.avatar.clone(),
-                client_type: u.client_type.clone(),
                 phone: u.phone.clone(),
             })
         }
         Err(_) => Err(error::new("phone not exists.".to_string())),
     }
+}
+
+pub fn save(req: UserSaveRequest,svc: &web::Data<ServiceContext>)->Result<UserSaveResponse,InternalError>{
+    let user = svc.user_repository.insert(&mut svc.pool.get().unwrap(),new_domain_user_dto(req.user))?;
+    Ok(UserSaveResponse{
+        user:new_dto_user(user)
+    })
+}
+
+pub fn delete(req: UserDeleteRequest,svc: &web::Data<ServiceContext>)->Result<UserDeleteResponse,InternalError>{
+    // 方法一
+    // match  svc.user_repository.find_one(&mut svc.pool.get().unwrap(),req.id){
+    //     Ok(_)=>{
+    //         let user = svc.user_repository.delete(&mut svc.pool.get().unwrap(),req.id)?;
+    //         Ok(UserDeleteResponse{
+    //             user:new_dto_user(user)
+    //         })
+    //     }
+    //     Err(e) => Err(error::new("用户不存在".to_string()))
+    // }
+    // 方法二
+    // svc.user_repository.find_one(&mut svc.pool.get().unwrap(),req.id)
+    //     .map_err(|_|InternalError::new("用户不存在".to_string()))?;
+    // 方法三
+    let result =svc.user_repository.find_one(&mut svc.pool.get().unwrap(),req.id);
+    if let Err(e) = result{
+        return Err(InternalError::new("用户不存在".to_string()))
+    }
+
+    // 事务
+    // svc.pool.get().unwrap().transaction(||{
+    //     Ok(())
+    // });
+
+    let user = svc.user_repository.delete(&mut svc.pool.get().unwrap(),req.id)?;
+    Ok(UserDeleteResponse{
+        user:new_dto_user(user)
+    })
+}
+
+pub fn update(req: UserUpdateRequest,svc: &web::Data<ServiceContext>)->Result<UserUpdateResponse,InternalError>{
+    let mut user = svc.user_repository.find_one(&mut svc.pool.get().unwrap(),req.user.id)?;
+
+    // 赋值
+    user.avatar = req.user.avatar;
+    user.name = req.user.name;
+    user.phone = req.user.phone;
+    let user = svc.user_repository.update(&mut svc.pool.get().unwrap(),user)?;//new_domain_user(req.user)
+    Ok(UserUpdateResponse{
+        user:new_dto_user(user)
+    })
+}
+
+
+pub fn get(req: UserGetRequest,svc: &web::Data<ServiceContext>)->Result<UserGetResponse,InternalError>{
+    let user = svc.user_repository.find_one(&mut svc.pool.get().unwrap(),req.id)?;
+    Ok(UserGetResponse{
+        user:new_dto_user(user)
+    })
+}
+pub fn search(req: UserSearchRequest,svc: &web::Data<ServiceContext>)->Result<UserSearchResponse,InternalError>{
+    let  mut queryOptions = entity::UserQueryOptions
+    {
+        page: Some(req.page),
+        size:Some(req.size),
+        // name:Some(req.name),
+        // phone:Some(req.phone),
+        ..Default::default()
+    };
+    if req.name.len()>0{
+        queryOptions.name = Some(req.name);
+    }
+    if req.phone.len()>0{
+        queryOptions.phone = Some(req.phone);
+    }
+    let users = svc.user_repository.find(&mut svc.pool.get().unwrap(),queryOptions)?;
+    let dto_users = new_dto_users(users);
+    Ok(UserSearchResponse {
+        list: dto_users,
+        total: 0, // 或者根据实际情况设置 total
+    })
+}
+
+
+fn new_dto_user(user: entity::User)->dto::User{
+    return dto::User{
+        id:user.id,
+        name:user.name,
+        phone:user.phone,
+        avatar:user.avatar,
+    }
+}
+
+fn new_domain_user(user: dto::User)-> entity::User{
+    let userId = if user.id>0 {user.id}else{0};
+    return entity::User{
+        id:userId,
+        name:user.name,
+        phone:user.phone,
+        avatar:user.avatar,
+        ..Default::default()
+    }
+}
+
+fn new_domain_user_dto(user: dto::User)-> entity::UserDTO{
+    return entity::UserDTO{
+        name:user.name,
+        phone:user.phone,
+        avatar:user.avatar,
+    }
+}
+
+fn new_dto_users(users: Vec<entity::User>)-> Vec<dto::User>{
+    // let mut target_vec: Vec<dto::User> = Vec::new();
+    // for item in users {
+    //     target_vec.push(new_dto_user(item));
+    // }
+    // target_vec
+    users.into_iter().map(|user|new_dto_user(user)).collect()
 }

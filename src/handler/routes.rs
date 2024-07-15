@@ -9,10 +9,27 @@ use log::info;
 
 pub fn config_services(cfg: &mut web::ServiceConfig) {
     //info!("Configuring routes...");
-    cfg.service(
-        web::scope("/v1/system")
-            .service(web::resource("/login").route(web::post().to(user_handler::login)))
-            .service(web::resource("/user_info").route(web::post().to(user_handler::user_info))),
+    // cfg.service(
+    //     web::scope("/v1/system")
+    //         .service(web::resource("/login").route(web::post().to(user_handler::login)))
+    //         .service(web::resource("/user_info").route(web::post().to(user_handler::user_info)))
+    //         .service(web::resource("/user/search").route(web::post().to(user_handler::search)))
+    //         .service(web::resource("/user").route(web::post().to(user_handler::save)))
+    //         .service(web::resource("/user/{id}")
+    //             .route(web::get().to(user_handler::get))
+    //             .route(web::put().to(user_handler::update))
+    //             .route(web::delete().to(user_handler::delete)))
+    // );
+
+    cfg.service(web::scope("/v1/system")
+        .route("/login",web::post().to(user_handler::login))
+        .route("/user_info",web::post().to(user_handler::user_info))
+
+        .route("/user/search",web::post().to(user_handler::search))
+        .route("/user",web::post().to(user_handler::save))
+        .route("/user/{id}",web::get().to(user_handler::get))
+        .route("/user/{id}",web::put().to(user_handler::update))
+        .route("/user/{id}",web::delete().to(user_handler::delete))
     );
 
     // 测试路由
@@ -28,7 +45,6 @@ pub fn config_services(cfg: &mut web::ServiceConfig) {
             .route("/stream", web::get().to(responder_stream_responder))
             .route("/either", web::get().to(responder_either_responder)),
     );
-
     // 静态文件
     // cfg.route("/static/{filename:.*}", web::get().to(file_server));
     // 目录  

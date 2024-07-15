@@ -53,6 +53,17 @@ pub struct InternalError {
     pub err: String,
 }
 
+use diesel::result::Error as DieselError;
+
+impl From<DieselError> for InternalError {
+    fn from(err: DieselError) -> InternalError {
+        InternalError {
+            code: Code::InternalServerError,
+            err: err.to_string(),
+        }
+    }
+}
+
 impl InternalError {
     pub fn new(msg: String) -> Self {
         InternalError {
