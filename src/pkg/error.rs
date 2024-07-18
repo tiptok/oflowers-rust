@@ -2,19 +2,19 @@ use actix_web::http::StatusCode;
 use actix_web::ResponseError;
 
 use derive_more::Display;
-use std::{default, fmt};
+use std::{ fmt};
 
 pub fn new(err: String) -> InternalError {
     InternalError {
         code: Code::InternalServerError,
-        err: err,
+        err,
     }
 }
 
 pub fn new_code_err(code: Code, err: String) -> InternalError {
     InternalError {
-        code: code,
-        err: err,
+        code,
+        err,
     }
 }
 
@@ -80,7 +80,7 @@ impl ResponseError for InternalError {
             Code::BadRequest => StatusCode::BAD_REQUEST,
             Code::NotFound => StatusCode::NOT_FOUND,
             Code::DBError => StatusCode::BAD_REQUEST,
-            _ => StatusCode::OK,
+            //_ => StatusCode::OK,
         }
     }
 }

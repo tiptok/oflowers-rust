@@ -3,13 +3,9 @@ use serde_derive::{Deserialize, Serialize};
 
 use crate::pkg::database::Conn;
 use crate::schema::users::dsl::*;
-use std::collections::HashMap;
 use std::time::{SystemTime, UNIX_EPOCH};
-use diesel::internal::derives::multiconnection::chrono;
 use diesel::query_dsl::methods::OrderDsl;
-use diesel::sql_types::BigInt;
-use futures::future::ok;
-use crate::pkg::pagination::{Paginate, Paginated};
+use crate::pkg::pagination::{Paginate};
 
 #[derive(Identifiable, Queryable, Selectable, Deserialize, Serialize,AsChangeset,Insertable,Default)]
 #[diesel(table_name = crate::schema::users)]
@@ -46,8 +42,8 @@ where
     fn find_one_by_phone(&self, conn: &mut Conn, keyword: &str) -> QueryResult<User>;
     fn find_one(&self, conn: &mut Conn, id: i64) -> QueryResult<User>;
     fn find_one_unscoped(&self, conn: &mut Conn, id: i64) -> QueryResult<User>;
-    fn find(&self, conn: &mut Conn,queryOptions: UserQueryOptions)->QueryResult<Vec<User>>;
-    fn find_paginate(&self, conn: &mut Conn,queryOptions: UserQueryOptions)->QueryResult<(Vec<User>,i64)>;
+    fn find(&self, conn: &mut Conn,options: UserQueryOptions)->QueryResult<Vec<User>>;
+    fn find_paginate(&self, conn: &mut Conn,options: UserQueryOptions)->QueryResult<(Vec<User>,i64)>;
 }
 
 #[derive(Clone, Copy)]
@@ -55,9 +51,6 @@ pub struct PgUserRepository {}
 
 
 impl UserRepository for PgUserRepository {
-    fn find_one_by_phone(&self, conn: &mut Conn, keyword: &str) -> QueryResult<User> {
-        users.filter(phone.eq(keyword)).get_result::<User>(conn)
-    }
     fn insert(&self,conn: &mut Conn,dm: UserDTO)->QueryResult<User>{
         let inserted_id: i64 = diesel::insert_into(users).values(&dm).returning(id).get_result(conn)?;
         Ok(User{
@@ -87,23 +80,26 @@ impl UserRepository for PgUserRepository {
         let deleted = users.find(other_id).first(conn)?;
         Ok(deleted)
     }
+    fn find_one_by_phone(&self, conn: &mut Conn, keyword: &str) -> QueryResult<User> {
+        users.filter(phone.eq(keyword)).get_result::<User>(conn)
+    }
     fn find_one(&self, conn: &mut Conn, user_id: i64) -> QueryResult<User> {
         users.filter(id.eq(user_id)).filter(deleted_at.is_null()).get_result::<User>(conn)
     }
     fn find_one_unscoped(&self, conn: &mut Conn, user_id: i64) -> QueryResult<User> {
         users.filter(id.eq(user_id)).get_result::<User>(conn)
     }
-    fn find(&self, conn: &mut Conn,queryOptions: UserQueryOptions)->QueryResult<Vec<User>>{
+    fn find(&self, conn: &mut Conn, options: UserQueryOptions) ->QueryResult<Vec<User>>{
         let mut query = users.into_boxed();
         query = query.filter(deleted_at.is_null());
-        if let Some(username)=queryOptions.name{
+        if let Some(username)= options.name{
             query = query.filter(name.like(format!("%{}%", username)));
         }
-        if let Some(userphone)=queryOptions.phone{
+        if let Some(userphone)= options.phone{
             query = query.filter(phone.like(format!("%{}%", userphone)));
         }
-        if let Some(page) = queryOptions.page{
-            if let Some(size) = queryOptions.size{
+        if let Some(page) = options.page{
+            if let Some(size) = options.size{
                 query = query.offset((page-1)*size);
                 query = query.limit(size);
             }
@@ -111,19 +107,19 @@ impl UserRepository for PgUserRepository {
         query = OrderDsl::order(query, id.asc());
         query.load::<User>(conn)
     }
-    fn find_paginate(&self, conn: &mut Conn,queryOptions: UserQueryOptions)->QueryResult<(Vec<User>,i64)>{
+    fn find_paginate(&self, conn: &mut Conn, options: UserQueryOptions) ->QueryResult<(Vec<User>, i64)>{
         let mut query = users.into_boxed();
         query = query.filter(deleted_at.is_null());
-        if let Some(username)=queryOptions.name{
+        if let Some(username)= options.name{
             query = query.filter(name.like(format!("%{}%", username)));
         }
-        if let Some(userphone)=queryOptions.phone{
+        if let Some(userphone)= options.phone{
             query = query.filter(phone.like(format!("%{}%", userphone)));
         }
         query
-            .paginate(queryOptions.page)
-            .page_size(queryOptions.size)
-            .sort(queryOptions.sort_by,queryOptions.sort_direction)
+            .paginate(options.page)
+            .page_size(options.size)
+            .sort(options.sort_by, options.sort_direction)
             .load_and_count_pages::<User>(conn)
     }
 }

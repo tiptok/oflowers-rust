@@ -1,5 +1,3 @@
-use std::default;
-
 use actix_web::{error, http::StatusCode, HttpRequest, HttpResponse, Responder};
 use actix_web::http::header::ContentType;
 //use futures::future::{ready, Ready};

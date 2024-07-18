@@ -1,4 +1,7 @@
-#![allow(unused_must_use)]
+//#![allow(unused_must_use)]
+#![allow(dead_code)]
+#![allow(unused_variables)]
+#![allow(unused_imports)]
 
 use actix_service::Service;
 use actix_web::{web, HttpResponse};
@@ -14,6 +17,7 @@ mod middleware;
 mod pkg;
 mod schema;
 mod svc;
+mod stdlib;
 
 #[actix_rt::main]
 async fn main() -> io::Result<()> {

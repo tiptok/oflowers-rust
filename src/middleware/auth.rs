@@ -21,8 +21,8 @@ where
 {
     type Response = ServiceResponse<EitherBody<B>>;
     type Error = Error;
-    type InitError = ();
     type Transform = AuthenticationMiddleware<S>;
+    type InitError = ();
     type Future = Ready<Result<Self::Transform, Self::InitError>>;
 
     fn new_transform(&self, service: S) -> Self::Future {

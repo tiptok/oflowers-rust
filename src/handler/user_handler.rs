@@ -1,12 +1,10 @@
 use actix_web::{error, web, Error, FromRequest, HttpRequest, HttpResponse, Responder};
-use actix_web::error::HttpError;
 use crate::domain::user::dto::*;
 use crate::logic::user_logic;
 use crate::pkg::{
-    json, jwt,
+    jwt,
     result::{fail, success},
 };
-use crate::pkg::result::ServiceError;
 use crate::svc::context::ServiceContext;
 
 // login 登录

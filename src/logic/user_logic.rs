@@ -1,4 +1,4 @@
-use crate::domain::user::entity::{User, UserQueryOptions, UserRepository};
+use crate::domain::user::entity::{ UserRepository};
 use crate::pkg::{
     error::{self, InternalError},
     jwt,
@@ -9,8 +9,6 @@ use crate::{
     svc::context::ServiceContext,
 };
 use actix_web::web;
-use diesel::{Connection, QueryResult};
-use diesel::serialize::IsNull::No;
 use crate::domain::user::dto::{UserDeleteRequest, UserDeleteResponse, UserGetRequest, UserGetResponse, UserSaveRequest, UserSaveResponse, UserSearchRequest, UserSearchResponse, UserUpdateRequest, UserUpdateResponse};
 use crate::domain::user::dto;
 use crate::domain::user::entity;
@@ -118,19 +116,19 @@ pub fn get(req: UserGetRequest,svc: &web::Data<ServiceContext>)->Result<UserGetR
     })
 }
 pub fn search(req: UserSearchRequest,svc: &web::Data<ServiceContext>)->Result<UserSearchResponse,InternalError>{
-    let  mut queryOptions = entity::UserQueryOptions
+    let  mut options = entity::UserQueryOptions
     {
         page: Some(req.page),
         size:Some(req.size),
         ..Default::default()
     };
     if req.name.len()>0{
-        queryOptions.name = Some(req.name);
+        options.name = Some(req.name);
     }
     if req.phone.len()>0{
-        queryOptions.phone = Some(req.phone);
+        options.phone = Some(req.phone);
     }
-    let result = svc.user_repository.find_paginate(&mut svc.pool.get().unwrap(),queryOptions)?;
+    let result = svc.user_repository.find_paginate(&mut svc.pool.get().unwrap(), options)?;
     let dto_users = new_dto_users(result.0);
     Ok(UserSearchResponse {
         list: dto_users,
@@ -149,9 +147,9 @@ fn new_dto_user(user: entity::User)->dto::User{
 }
 
 fn new_domain_user(user: dto::User)-> entity::User{
-    let userId = if user.id>0 {user.id}else{0};
+    let id = if user.id>0 {user.id}else{0};
     return entity::User{
-        id:userId,
+        id,
         name:user.name,
         phone:user.phone,
         avatar:user.avatar,

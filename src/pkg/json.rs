@@ -1,5 +1,4 @@
-use actix_http::Error;
-use actix_web::web::{self, BytesMut};
+use actix_web::web::{self};
 use serde::de::DeserializeOwned;
 use serde::{Deserialize, Serialize};
 use serde_json;

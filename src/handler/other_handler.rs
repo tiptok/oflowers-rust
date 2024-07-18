@@ -1,5 +1,4 @@
 use actix_files::NamedFile;
-use actix_http::{ResponseBuilder, StatusCode};
 use actix_web::{
     error, web, Either, Error, FromRequest, HttpRequest, HttpResponse, Responder, Result,
 };
@@ -51,7 +50,7 @@ pub async fn responder_either_responder() -> RegisterResult {
 // curl http://localhost:8088/static/a.txt
 pub async fn file_server(req: HttpRequest) -> Result<NamedFile> {
     let filename: PathBuf = req.match_info().query("filename").parse().unwrap();
-    let mut path: PathBuf = PathBuf::from("./public").join(filename);
+    let  path: PathBuf = PathBuf::from("./public").join(filename);
     debug!("file path is:{}",path.to_str().unwrap());
     Ok(NamedFile::open(path)?)
 }
